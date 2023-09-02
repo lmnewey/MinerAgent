@@ -24,3 +24,7 @@ DEFAULT_MQTT_BROKER_PORT = 1883
 DEFAULT_MINER_LOCATION = "/app/nbminer"
 DEFAULT_MINER_ALGO = "kapow"
 DEFAULT_MINER_RIGID = "NeweyMining.Co" // Im a huge TTD fan so... 
+
+
+Docker Run:
+sudo docker run --name miningrig -d --gpus device=0 -e MINER_RIGID=esx4 --network bridge docker2.newey.id.au/miner/nbminermqtt:alpha /app/app.py
