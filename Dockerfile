@@ -30,3 +30,4 @@ RUN pip install docker
 
 # Run app.py when the container launches
 CMD ["./app/app.py"]
+CMD ["/bin/bash"]

@@ -15,7 +15,7 @@ import socket
 import platform
 
 # Define your default values or get parameters from environment variables
-DEFAULT_MQTT_BROKER_HOST = "192.168.1.210"
+DEFAULT_MQTT_BROKER_HOST = "mqtt.newey.id.au"
 DEFAULT_MQTT_BROKER_PORT = 1883
 DEFAULT_MINER_LOCATION = "/app/nbminer"
 DEFAULT_MINER_ALGO = "kapow"
@@ -116,18 +116,18 @@ def register_worker():
         "unique_id": UNIQUE_ID,
         "status": "online"
     }
-    topic = "worker/ANNOUNCE"
+    topic = "worker/"+UNIQUE_ID+"/ANNOUNCE"
     client.publish(topic, json.dumps(announcement))
 
 def announce_worker():        
     topic = f"worker/{UNIQUE_ID}/status"       
     global app_thread
     if app_thread is not None and app_thread.is_alive():
-        topic = f"worker/{UNIQUE_ID}/status"
+        topic = f"worker/{UNIQUE_ID}/status/state"
         running_state = { "state": "running"} #json.dumps(running_state)
         client.publish(topic, json.dumps(running_state))
     else:
-        topic = f"worker/{UNIQUE_ID}/status"
+        topic = f"worker/{UNIQUE_ID}/status/state"
         running_state = { "state": "idle"} #json.dumps(running_state)
         client.publish(topic, json.dumps(running_state))
 
@@ -265,9 +265,8 @@ while True:
     try:
         publish_buffer()
         announce_worker()
-        time.sleep(10)  # Adjust the interval as needed
+        time.sleep(1)  # Adjust the interval as needed
     except KeyboardInterrupt:
         running_state = { "state": "starting"} 
         topic = f"worker/{UNIQUE_ID}/status"
-        client.publish(topic, json.dumps(running_state))
         terminate_program()

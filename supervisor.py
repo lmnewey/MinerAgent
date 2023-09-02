@@ -11,7 +11,7 @@ import subprocess
 import platform
 
 
-DEFAULT_MQTT_BROKER_HOST = "192.168.1.210"
+DEFAULT_MQTT_BROKER_HOST = "mqtt.newey.id.au"
 DEFAULT_MQTT_BROKER_PORT = 1883
 DEFAULT_MINER_LOCATION = "/app/nbminer"
 DEFAULT_MINER_ALGO = "kapow"
@@ -35,27 +35,34 @@ app_pid = None
 process_name = None
 
 def get_gpu_info():
-    gpu_info = {}
+    gpu_info = []
 
     try:
-        # Run the nvidia-smi command to get GPU information
+        
         result = subprocess.run(
-            ["nvidia-smi", "--query-gpu=name,utilization.gpu,power.draw,memory.used", "--format=csv,noheader,nounits"],
+            ["nvidia-smi", "--query-gpu=name,utilization.gpu,power.draw,power.max_limit,memory.total,memory.used", "--format=csv,noheader,nounits"],
             stdout=subprocess.PIPE, text=True, check=True
         )
-
+        
+        
         # Split the output by lines and extract GPU model, usage, power consumption, and memory usage
         gpu_info_lines = result.stdout.strip().split('\n')
-        for idx, line in enumerate(gpu_info_lines):
-            model, usage, power, memory = line.split(',')
-            gpu_info[idx] = {
-                "model": model.strip(),
-                "usage": float(usage.strip()),
-                "power": float(power.strip()),
-                "memory_usage": int(memory.strip())
-            }
-        #print(gpu_info)
-        return json.dumps(gpu_info)
+        for line in gpu_info_lines:
+            data = line.split(',')
+            print(f"debug1 {len(data)}")
+            if len(data) == 6:
+                print(f"debug1 {len(data)}")
+                model, usage, power_draw, power_max_limit, memory_total, memory_used = data
+                gpu_info.append({
+                    "model": model.strip(),
+                    "usage": float(usage.strip()),
+                    "power_draw": float(power_draw.strip()),
+                    "power_max":float(power_max_limit.strip()),
+                    "memory_used": float(memory_used.strip()),
+                    "memory_total": int(memory_total.strip())                                        
+                })
+                #print(json.dumps(gpu_info))
+        return gpu_info
 
     except subprocess.CalledProcessError as e:
         print("Error running nvidia-smi:", e)
@@ -79,13 +86,14 @@ def send_process_list():
         "platform": platform.platform(),
         "cpu": platform.processor(),
         "cpu_usage": psutil.cpu_percent(interval=1),
-        "process_name": process_name,        
-        #"running_processes": running_processes,
-        "GPU Data":  get_gpu_info()
+        "process_name": process_name        
+        #"running_processes": running_processes,        
      }
 
      status_message = json.dumps(status_info)
-     client.publish(f"worker/{UNIQUE_ID}/status", status_message)
+     gpu_message = json.dumps(get_gpu_info(), indent=4)
+     client.publish(f"worker/{UNIQUE_ID}/status/CPU", status_message)
+     client.publish(f"worker/{UNIQUE_ID}/status/GPU", gpu_message)
      
 
 def kill_processes_by_name(process_name):
@@ -167,6 +175,15 @@ try:
         time.sleep(1)
 except Exception as exc:
     print(f"had an exception but i dont know what {exc}")
+
+
+# // kept for troubleshooting
+
+# Run the nvidia-smi command to get GPU information
+        # result = subprocess.run(
+        #     ["nvidia-smi", "--query-gpu=name,utilization.gpu,power.draw,memory.used", "--format=csv,noheader,nounits"],
+        #     stdout=subprocess.PIPE, text=True, check=True
+        # )
 # except KeyboardInterrupt:    
 #     client.publish(f"worker/{UNIQUE_ID}/supervisor/status", "Exiting the program...")
 
